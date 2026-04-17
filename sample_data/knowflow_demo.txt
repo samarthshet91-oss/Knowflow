@@ -1,0 +1,17 @@
+KnowFlow Demo Source
+
+KnowFlow is a source-grounded AI knowledge workspace for students, researchers, and hackathon teams. It helps users upload their own documents, ask questions about those documents, generate summaries, practice with quizzes, and review concepts with flashcards.
+
+The central idea is retrieval augmented generation, often called RAG. In a RAG workflow, a document is split into smaller chunks. Each chunk is converted into an embedding, which is a numerical representation of meaning. The embeddings are stored in a vector database. When a user asks a question, the question is also embedded, and the database retrieves chunks that are semantically close to the question.
+
+Source grounding matters because it reduces hallucination. Instead of answering from memory, the assistant answers from the retrieved document chunks. A reliable study assistant should also show evidence so users can inspect where the answer came from.
+
+KnowFlow uses Streamlit for the user interface because it is Python-first and easy to deploy. It uses PyMuPDF to parse PDFs, sentence-transformers to create embeddings, and ChromaDB as a local vector store. The app can optionally call Ollama for local answer generation. If Ollama is not installed, KnowFlow still works by using an extractive fallback that selects relevant sentences from the retrieved chunks.
+
+For a hackathon demo, reliability is more important than complex features. KnowFlow avoids paid APIs, authentication systems, and fragile frontend frameworks. The stable MVP focuses on uploading sources, asking grounded questions, summarizing content, creating quizzes, generating flashcards, and extracting topics.
+
+An exam summary should highlight high-yield topics, key definitions, and the main process steps. A quiz should test whether the learner can connect concepts to statements from the source material. Flashcards should be concise and useful for quick review.
+
+The main limitation is that image-only scanned PDFs may not work because optical character recognition is not included. This tradeoff keeps the app simple and stable for free hosting. Users should upload text-based PDFs or TXT files for best results.
+
+During a presentation, the developer can explain that KnowFlow has four layers: parsing, chunking and embeddings, retrieval, and grounded generation. The Streamlit interface connects those layers into a simple workflow that non-technical users can try immediately.
