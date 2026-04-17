@@ -155,6 +155,32 @@ def index_document(filename: str, text: str, embedding_model: Any | None = None)
     except Exception:
         return {"ok": False, "message": "Indexing failed. Try a smaller or cleaner document."}
 
+def rerank_chunks(query: str, chunks: list[SourceChunk], top_k: int = 5) -> list[SourceChunk]:
+    """Re-rank retrieved chunks using simple semantic + keyword scoring."""
+    if not chunks:
+        return []
+
+    query_terms = {
+        word.lower()
+        for word in re.findall(r"[a-zA-Z][a-zA-Z0-9_-]+", query)
+        if len(word) > 3
+    }
+
+    scored = []
+
+    for chunk in chunks:
+        words = set(re.findall(r"[a-zA-Z][a-zA-Z0-9_-]+", chunk.text.lower()))
+
+        overlap_score = len(query_terms & words)
+        distance_score = 1 / (1 + (chunk.score if chunk.score is not None else 1))
+
+        final_score = overlap_score * 0.7 + distance_score * 0.3
+
+        scored.append((final_score, chunk))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    return [chunk for _, chunk in scored[:top_k]]
 
 def retrieve_relevant_chunks(query: str, embedding_model: Any, top_k: int = DEFAULT_TOP_K) -> list[SourceChunk]:
     """Retrieve the most relevant chunks for a user question."""
@@ -182,6 +208,7 @@ def retrieve_relevant_chunks(query: str, embedding_model: Any, top_k: int = DEFA
                     score=float(distance) if distance is not None else None,
                 )
             )
+            chunks = rerank_chunks(query, chunks, top_k)
         return chunks
     except Exception:
         return []
@@ -247,15 +274,20 @@ def generate_with_ollama(question: str, chunks: list[SourceChunk]) -> str | None
         return None
     context = build_context(chunks)
     prompt = f"""
-You are KnowFlow, a careful study assistant. Answer ONLY from the context below.
-If the context does not contain enough evidence, say that the uploaded sources do not answer it.
-Cite sources inline like [Source 1].
+You are KnowFlow, an intelligent study assistant.
+
+Rules:
+- Answer ONLY from the provided sources
+- Combine information from multiple sources if needed
+- If unsure, say "The sources do not contain enough information"
+- Always cite like [Source X]
 
 Context:
 {context}
 
 Question: {question}
-Answer:
+
+Answer (well-structured):
 """.strip()
     try:
         import requests
