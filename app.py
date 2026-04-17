@@ -104,7 +104,15 @@ def render_sidebar() -> None:
     with st.sidebar:
         st.title(APP_NAME)
         st.caption(APP_TAGLINE)
+        st.info("Local AI workspace powered by RAG + Ollama")
         st.text_input("Workspace name", key="workspace_name")
+        st.markdown("### 📂 Navigation")
+        st.radio(
+            "Go to",
+            ["🏠 Home", "💬 Chat", "📚 Summary", "🧠 Flashcards", "❓ Quiz", "🔍 Topics"],
+            key="current_page",
+        )
+        st.divider()
 
         uploads = st.file_uploader(
             "Upload sources",
@@ -142,6 +150,9 @@ def render_sidebar() -> None:
         total_chunks = sum(source["chunks"] for source in sources)
         st.caption(f"Embedding: {st.session_state.embedding_status}")
         st.caption(f"Total chunks: {total_chunks}")
+        if st.button("Clear chat history", use_container_width=True):
+            st.session_state.messages = []
+            st.success("Chat history cleared.")
 
 
 def render_chat() -> None:
@@ -256,38 +267,55 @@ def render_study_tools() -> None:
         else:
             st.warning("No topics found yet.")
 
-
-def main() -> None:
-    """Run the Streamlit app."""
-    init_state()
-    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-    render_sidebar()
-
+def render_home() -> None:
+    sources = get_indexed_sources()
+    chunk_count = sum(source["chunks"] for source in sources)
+    workspace = escape(st.session_state.get("workspace_name", "My Knowledge Workspace"))
     st.markdown(
         f"""
         <div class="hero">
             <h1>{APP_NAME}</h1>
             <p class="muted">{APP_TAGLINE}</p>
-            <p>Upload notes, papers, or study guides. Ask questions, inspect evidence,
-            generate summaries, practice quizzes, and review flashcards.</p>
+            <p>Upload notes , PDFs, or other study guides. Chat with your sources, inspect evidence, and generate summaries, flashcards, quizzes, and topics to help you study.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    sources = get_indexed_sources()
-    chunk_count = sum(source["chunks"] for source in sources)
-    workspace = escape(st.session_state.workspace_name)
     col1, col2, col3 = st.columns(3)
-    col1.markdown(f'<div class="metric-card"><b>Workspace</b><br>{workspace}</div>', unsafe_allow_html=True)
-    col2.markdown(f'<div class="metric-card"><b>Sources</b><br>{len(sources)}</div>', unsafe_allow_html=True)
-    col3.markdown(f'<div class="metric-card"><b>Chunks</b><br>{chunk_count}</div>', unsafe_allow_html=True)
+    col1.markdown(
+        f'<div class="metric-card"><b>Workspace</b><br>{workspace}</div>',
+        unsafe_allow_html=True,
+    )
+    col2.markdown(
+        f'<div class="metric-card"><b>Sources</b><br>{len(sources)}</div>',
+        unsafe_allow_html=True,
+    )
+    col3.markdown(
+        f'<div class="metric-card"><b>Indexed Chunks</b><br>{chunk_count}</div>',
+        unsafe_allow_html=True,
+    )
 
-    left, right = st.columns([1.15, 0.85], gap="large")
-    with left:
-        render_chat()
-    with right:
-        render_study_tools()
+
+def main() -> None:
+    init_state()
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    render_sidebar()
+
+
+page = st.session_state.get("current_page","🏠 Home")
+if page == "🏠 Home":
+    render_home()
+elif page == "💬 Chat":
+    render_chat()
+elif page == "📚 Summary":
+    render_study_tools()
+elif page == "🧠 Flashcards":
+    render_study_tools()
+elif page == "❓ Quiz":
+    render_study_tools()
+elif page == "🔍 Topics":
+    render_study_tools()
 
 
 if __name__ == "__main__":
